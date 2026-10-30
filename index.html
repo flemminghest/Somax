@@ -23,6 +23,27 @@ const seedTasks=[
 ['Test & lancering','Gennemfør funktionstest','Links, sider, sprogskift, videoer, formularer og navigation.'],['Test & lancering','Gennemfør testordre','Test produkt, betaling, fragt, e-mails og ordrestatus.'],['Test & lancering','Validér tracking og samtykke','GA4, GTM, Ads, Consent Mode og event-deduplikering.'],['Test & lancering','Go-live','Domæne, SSL, fjern password, sitemap og endelig godkendelse.'],
 ['Efter lancering','Følg op de første 14 dage','Ordrer, betalinger, fragt, tracking og tekniske fejl.'],['Efter lancering','Etablér månedlig optimering','GA4, konverteringsrate, SEO, GEO og produktperformance.']];
 const STORE='somax-roadmap-v1';let data;try{data=JSON.parse(localStorage.getItem(STORE))}catch(e){}if(!data||!Array.isArray(data.topics)||!Array.isArray(data.tasks))data={topics:seedTopics.map((x,i)=>({id:'t'+i,name:x[0],desc:x[1],color:colors[i%colors.length]})),tasks:seedTasks.map((x,i)=>({id:'a'+i,topicId:'t'+seedTopics.findIndex(t=>t[0]===x[0]),title:x[1],desc:x[2],status:'todo',owner:'',due:''}))};
+// Recovery: restore the Shopify & design topic and its original five tasks if deleted.
+(function restoreShopifyDesign(){
+  let t = data.topics.find(x => x.name === 'Shopify & design');
+  if (!t) {
+    t = {id:'t_shopify_design_restore',name:'Shopify & design',desc:'Grundopsætning, tema, navigation og sider.',color:'#7d8de0'};
+    data.topics.splice(Math.min(1,data.topics.length),0,t);
+  }
+  const restored = [
+    ['Opret Shopify og vælg abonnement','Opret konto, butiksnavn og relevant abonnement.'],
+    ['Tilknyt domæne og SSL','DNS, domæneforbindelse og sikker HTTPS.'],
+    ['Vælg og tilpas tema','Responsivt tema, farver, typografi og visuel identitet.'],
+    ['Byg navigation og footer','Header, menupunkter, footer og juridiske links.'],
+    ['Byg undersiderne','Forside, produkt, Om os, FAQ, Kontakt samt lovpligtige sider.']
+  ];
+  for (const [title,desc] of restored) {
+    if (!data.tasks.some(x => x.topicId === t.id && x.title === title)) {
+      data.tasks.push({id:'restore_shopify_'+restored.indexOf(restored.find(x=>x[0]===title)),topicId:t.id,title,desc,status:'todo',owner:'',due:''});
+    }
+  }
+  save();
+})();
 function save(){localStorage.setItem(STORE,JSON.stringify(data))}let view='dashboard';let expanded=new Set();const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));const topic=id=>data.topics.find(t=>t.id===id);const completed=()=>data.tasks.filter(t=>t.status==='done').length;const progress=()=>data.tasks.length?Math.round(completed()/data.tasks.length*100):0;
 function setView(v){view=v;document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active',b.dataset.view===v));render()}function render(){let el=document.getElementById('appview');el.innerHTML=view==='dashboard'?dashboard():view==='topics'?topicsView():roadmapView();requestAnimationFrame(()=>el.querySelectorAll('.accordion-panel[data-expanded="true"]').forEach(x=>x.classList.add('open')))}
 function dashboard(){let p=progress(),left=data.tasks.length-completed();return `<div class="hero"><section class="welcome"><div class="eyebrow">Projektoversigt · Shopify</div><h2>Få overblik.<br>Skab fremdrift.</h2><p>Din samlede plan for en enkel Shopify-løsning med ét produkt, to sprog og de vigtigste integrationer.</p></section><section class="progress-card"><div><h3>Samlet fremdrift</h3><p>${completed()} af ${data.tasks.length} opgaver gennemført</p></div><div class="ring" style="--progress:${p}%"><div><strong>${p}%</strong><span>FÆRDIG</span></div></div></section></div><div class="stats"><div class="stat"><label>Alle opgaver</label><strong>${data.tasks.length}</strong></div><div class="stat"><label>Færdige</label><strong>${completed()}</strong></div><div class="stat"><label>Mangler</label><strong>${left}</strong></div></div><div class="section-head"><div><h2>Emner</h2><p>Vælg et emne for at se og opdatere opgaverne.</p></div><button class="btn primary" onclick="topicForm()">＋ Nyt emne</button></div><div class="topic-grid">${data.topics.map(topicCard).join('')||'<div class="empty">Opret dit første emne.</div>'}</div>`}
